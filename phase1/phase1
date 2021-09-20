@@ -1,1 +1,75 @@
 Phasse 1
+1. Setting up break point:
+
+(gdb) b phase_1
+Breakpoint 1 at 0x400e8d
+(gdb) run
+Starting program: /home/lhashing/Desktop/Assignment 1/bomb002/bomb 
+Welcome to my fiendish little bomb. You have 6 phases with
+which to blow yourself up. Have a nice day!
+Test String
+
+Breakpoint 1, 0x0000000000400e8d in phase_1 ()
+(gdb) disas
+Dump of assembler code for function phase_1:
+=> 0x0000000000400e8d <+0>:	sub    $0x8,%rsp        //building stack frame with 8 more bytes
+   0x0000000000400e91 <+4>:	mov    $0x4023cc,%esi   //what is this being moved?
+   0x0000000000400e96 <+9>:	callq  0x401339 <strings_not_equal>   //will compare input string with answer
+   0x0000000000400e9b <+14>:	test   %eax,%eax
+   0x0000000000400e9d <+16>:	je     0x400ea4 <phase_1+23>
+   0x0000000000400e9f <+18>:	callq  0x401438 <explode_bomb>
+   0x0000000000400ea4 <+23>:	add    $0x8,%rsp
+   0x0000000000400ea8 <+27>:	retq   
+End of assembler dump.
+
+2. Examining what is being moved from address 0x4024bc. We know it has to be a string of some sort so we use '/s' :
+
+(gdb) x/s 0x4023cc
+0x4023cc:	"Public speaking is very easy."
+
+3. So this string is being moved into %esi, and will be passed into <strings_not_equal>. Examining what <strings_not_equal> does:
+
+(gdb) disas strings_not_equal
+Dump of assembler code for function strings_not_equal:
+   0x0000000000401339 <+0>:	push   %r12
+   0x000000000040133b <+2>:	push   %rbp
+   0x000000000040133c <+3>:	push   %rbx
+   0x000000000040133d <+4>:	mov    %rdi,%rbx
+   0x0000000000401340 <+7>:	mov    %rsi,%rbp
+   0x0000000000401343 <+10>:	callq  0x40131b <string_length>
+   0x0000000000401348 <+15>:	mov    %eax,%r12d
+   0x000000000040134b <+18>:	mov    %rbp,%rdi
+   0x000000000040134e <+21>:	callq  0x40131b <string_length>
+   0x0000000000401353 <+26>:	mov    $0x1,%edx
+   0x0000000000401358 <+31>:	cmp    %eax,%r12d
+   0x000000000040135b <+34>:	jne    0x401399 <strings_not_equal+96>
+   0x000000000040135d <+36>:	movzbl (%rbx),%eax
+   0x0000000000401360 <+39>:	test   %al,%al
+   0x0000000000401362 <+41>:	je     0x401386 <strings_not_equal+77>
+   0x0000000000401364 <+43>:	cmp    0x0(%rbp),%al
+   0x0000000000401367 <+46>:	je     0x401370 <strings_not_equal+55>
+   0x0000000000401369 <+48>:	jmp    0x40138d <strings_not_equal+84>
+   0x000000000040136b <+50>:	cmp    0x0(%rbp),%al
+   0x000000000040136e <+53>:	jne    0x401394 <strings_not_equal+91>
+   0x0000000000401370 <+55>:	add    $0x1,%rbx
+   0x0000000000401374 <+59>:	add    $0x1,%rbp
+--Type <RET> for more, q to quit, c to continue without paging--c
+   0x0000000000401378 <+63>:	movzbl (%rbx),%eax
+   0x000000000040137b <+66>:	test   %al,%al
+   0x000000000040137d <+68>:	jne    0x40136b <strings_not_equal+50>
+   0x000000000040137f <+70>:	mov    $0x0,%edx
+   0x0000000000401384 <+75>:	jmp    0x401399 <strings_not_equal+96>
+   0x0000000000401386 <+77>:	mov    $0x0,%edx
+   0x000000000040138b <+82>:	jmp    0x401399 <strings_not_equal+96>
+   0x000000000040138d <+84>:	mov    $0x1,%edx
+   0x0000000000401392 <+89>:	jmp    0x401399 <strings_not_equal+96>
+   0x0000000000401394 <+91>:	mov    $0x1,%edx
+   0x0000000000401399 <+96>:	mov    %edx,%eax
+   0x000000000040139b <+98>:	pop    %rbx
+   0x000000000040139c <+99>:	pop    %rbp
+   0x000000000040139d <+100>:	pop    %r12
+   0x000000000040139f <+102>:	retq   
+End of assembler dump.
+
+4. <Strings_not_equal> doesnt have a call to bomb so it's okay to execute. Looking at %eax, we see it is = 1, so it will call the bomb.
+
