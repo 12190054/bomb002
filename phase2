@@ -1,1 +1,90 @@
+Phase 2
+1. Using objdump -d bomb | more to look at the assembly code for the next phase:
 
+0000000000400ea9 <phase_2>:
+  400ea9:	55                   	push   %rbp
+  400eaa:	53                   	push   %rbx
+  400eab:	48 83 ec 28          	sub    $0x28,%rsp   //makes a stack frame of 56 bytes
+  400eaf:	64 48 8b 04 25 28 00 	mov    %fs:0x28,%rax
+  400eb6:	00 00 
+  400eb8:	48 89 44 24 18       	mov    %rax,0x18(%rsp)
+  400ebd:	31 c0                	xor    %eax,%eax
+  400ebf:	48 89 e6             	mov    %rsp,%rsi
+  400ec2:	e8 93 05 00 00       	callq  40145a <read_six_numbers>    //We see that this phase wants an input of 6 numbers.
+  400ec7:	83 3c 24 01          	cmpl   $0x1,(%rsp)
+  400ecb:	74 05                	je     400ed2 <phase_2+0x29>
+  400ecd:	e8 66 05 00 00       	callq  401438 <explode_bomb>
+  400ed2:	48 89 e3             	mov    %rsp,%rbx
+  400ed5:	48 8d 6c 24 14       	lea    0x14(%rsp),%rbp
+  400eda:	8b 03                	mov    (%rbx),%eax
+  400edc:	01 c0                	add    %eax,%eax
+  400ede:	39 43 04             	cmp    %eax,0x4(%rbx)               //We are comparing something here!
+  400ee1:	74 05                	je     400ee8 <phase_2+0x3f>
+  400ee3:	e8 50 05 00 00       	callq  401438 <explode_bomb>
+  400ee8:	48 83 c3 04          	add    $0x4,%rbx
+  400eec:	48 39 eb             	cmp    %rbp,%rbx                    //Comparing something here!
+  400eef:	75 e9                	jne    400eda <phase_2+0x31>
+  400ef1:	48 8b 44 24 18       	mov    0x18(%rsp),%rax
+  400ef6:	64 48 33 04 25 28 00 	xor    %fs:0x28,%rax
+  400efd:	00 00 
+  400eff:	74 05                	je     400f06 <phase_2+0x5d>
+  400f01:	e8 fa fb ff ff       	callq  400b00 <__stack_chk_fail@plt>
+  400f06:	48 83 c4 28          	add    $0x28,%rsp                   // closing the stack frame
+  400f0a:	5b                   	pop    %rbx
+  400f0b:	5d                   	pop    %rbp
+  400f0c:	c3                   	retq   
+  
+2. Putting in "1 2 3 4 5 6" as our test input and disas <read_six_numbers>:
+
+(gdb) b phase_2
+Breakpoint 1 at 0x400ea9
+(gdb) run
+Starting program: /home/lhashing/Desktop/Assignment 1/bomb002/bomb 
+Welcome to my fiendish little bomb. You have 6 phases with
+which to blow yourself up. Have a nice day!
+Public speaking is very easy.
+Phase 1 defused. How about the next one?
+1 2 3 4 5 6
+
+Breakpoint 1, 0x0000000000400ea9 in phase_2 ()
+(gdb) disas read_six_numbers
+Dump of assembler code for function read_six_numbers:
+   0x000000000040145a <+0>:	sub    $0x8,%rsp      //making a stack frame
+   0x000000000040145e <+4>:	mov    %rsi,%rdx
+   0x0000000000401461 <+7>:	lea    0x4(%rsi),%rcx
+   0x0000000000401465 <+11>:	lea    0x14(%rsi),%rax
+   0x0000000000401469 <+15>:	push   %rax
+   0x000000000040146a <+16>:	lea    0x10(%rsi),%rax
+   0x000000000040146e <+20>:	push   %rax
+   0x000000000040146f <+21>:	lea    0xc(%rsi),%r9
+   0x0000000000401473 <+25>:	lea    0x8(%rsi),%r8
+   0x0000000000401477 <+29>:	mov    $0x4025ab,%esi   //$0x4025ab is being put into %esi which is compared to our input
+   0x000000000040147c <+34>:	mov    $0x0,%eax
+   0x0000000000401481 <+39>:	callq  0x400bb0 <__isoc99_sscanf@plt>
+   0x0000000000401486 <+44>:	add    $0x10,%rsp
+   0x000000000040148a <+48>:	cmp    $0x5,%eax
+   0x000000000040148d <+51>:	jg     0x401494 <read_six_numbers+58>    //if %eax is greater than 5, then we pass explode bomb. 
+   0x000000000040148f <+53>:	callq  0x401438 <explode_bomb>        //Setting breakpoint here as safety!
+   0x0000000000401494 <+58>:	add    $0x8,%rsp
+   0x0000000000401498 <+62>:	retq   
+End of assembler dump.
+
+3. Checking what 0x4025ab is:
+
+(gdb) x/s 0x4025ab
+0x4025ab:	"%d %d %d %d %d %d"
+(gdb) 
+
+4. The above must be the format of our answer, which is 6 digits with spaces in between. Looking at:
+
+   0x000000000040148a <+48>:	cmp    $0x5,%eax
+   0x000000000040148d <+51>:	jg     0x401494 <read_six_numbers+58>
+   0x000000000040148f <+53>:	callq  0x401438 <explode_bomb> 
+   
+5. We can see that its probably comparing our input format to the format in %esi. If we have more than 5 digits, aka 6, we can pass
+   the explode bomb. Seeing if this works for our "1 2 3 4 5 6":
+   
+   
+   
+   
+   
