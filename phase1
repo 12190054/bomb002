@@ -22,7 +22,7 @@ Dump of assembler code for function phase_1:
    0x0000000000400ea8 <+27>:	retq   
 End of assembler dump.
 
-2. Examining what is being moved from address 0x4024bc. We know it has to be a string of some sort so we use '/s' :
+2. Examining what is being moved from address 0x4023cc. We know it has to be a string of some sort so we use '/s' :
 
 (gdb) x/s 0x4023cc
 0x4023cc:	"Public speaking is very easy."
